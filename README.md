@@ -1,5 +1,7 @@
-# POC Challange 1 Networking
-# Prerequisites
+# VPC Peering with IaC templates
+#### POC Challange 1 Networking
+
+## Prerequisites - Terraform
 1. Install Terraform
 2. Add IAM User and generate Access Key
 3. Put the credentials on ~/.aws/credentials below is the template
