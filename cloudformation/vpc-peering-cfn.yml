@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A sample template
+Parameters:
+  VPCCidr: 
+    Description: Assign a VPC Cidr
+    Type: String
+  VPCName: 
+    Description: Assign a VPC Name
+    Type: String
+  Subnet1Cidr:
+    Description: Assign the first subnet cidr
+    Type: String
+  Subnet1Name:
+    Description: Assign the first subnet name(Public)
+    Type: String
+  Subnet2Cidr:
+    Description: Assign the second subnet cidr(Private)
+    Type: String
+  Subnet2Name:
+    Description: Assign the second subnet name
+    Type: String
+  KeyName:
+    Description: Assign a key pair
+    Type: String
+  EC2Name:
+    Description: Assign a EC2 name
+    Type: String
+  IgwName:
+    Description: Assign a internet gateway name
+    Type: String
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: "ami-051f7e7f6c2f40dc1"
+      Subnet1Az: "us-east-1a"
+      Subnet2Az: "us-east-1b"
+    ap-northeast-1:
+      AMI: "ami-0310b105770df9334"
+      Subnet1Az: "ap-northeast-1a"
+      Subnet2Az: "ap-northeast-1c"
+Resources:
+  VPC1:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref VPCCidr
+      Tags: 
+        - Key: "Name"
+          Value: !Ref VPCName
+  Subnet1: # public
+    Type: AWS::EC2::Subnet
+    Properties: 
+      CidrBlock: !Ref Subnet1Cidr
+      Tags: 
+        - Key: "Name"
+          Value: !Ref Subnet1Name
+      VpcId: !Ref VPC1
+      AvailabilityZone: !FindInMap 
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - Subnet1Az
+      VpcId: !Ref VPC1
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      CidrBlock: !Ref Subnet2Cidr
+      Tags: 
+        - Key: "Name"
+          Value: !Ref Subnet2Name
+      VpcId: !Ref VPC1
+      AvailabilityZone: !FindInMap 
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - Subnet2Az
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC1
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: Name
+          Value: !Ref IgwName
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC1
+  AddRouteTable: 
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref VPC1
+  AddRoute:
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref AddRouteTable
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AddRouteTable
+      SubnetId: !Ref Subnet1
+  Ec2Instance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !FindInMap 
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - AMI
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: 0
+          GroupSet: 
+            - !Ref InstanceSecurityGroup
+          SubnetId: !Ref Subnet1
+      Tags: 
+        - Key: "Name"
+          Value: !Ref EC2Name
