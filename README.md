@@ -1,5 +1,4 @@
 # VPC Peering with IaC templates
-#### POC Challange 1 Networking
 
 ## Prerequisites - Terraform
 1. Install Terraform
